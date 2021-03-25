@@ -87,7 +87,7 @@ public class ls
 
         // while we can read, print the information on each entry
         while( true ) 
-        {
+        { 
           // read an entry; quit loop if error or nothing read
           status = Kernel.readdir( fd , directoryEntry ) ;
           if( status <= 0 )
@@ -155,7 +155,7 @@ public class ls
     s.append(type);
     s.append(' ');
 
-    type = 0333;
+    type = stat.getMode();
     s.append(Integer.toOctalString((type & Kernel.S_IRWXU) >> 6));
     s.append(Integer.toOctalString((type & Kernel.S_IRWXG) >> 3));
     s.append(Integer.toOctalString(type & Kernel.S_IRWXO));
