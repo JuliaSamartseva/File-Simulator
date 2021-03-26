@@ -2,8 +2,8 @@ package org.filesystem;/*
  * $Id: SuperBlock.java,v 1.9 2001/10/07 23:48:55 rayo Exp $
  */
 
-import java.io.RandomAccessFile ;
-import java.io.IOException ;
+import java.io.RandomAccessFile;
+import java.io.IOException;
 import java.util.*;
 
 /*
@@ -34,144 +34,136 @@ import java.util.*;
 /**
  * @author Ray Ontko
  */
-public class SuperBlock 
-{
+public class SuperBlock {
 
   /**
    * Size of each block in the file system.
    */
-  private short blockSize ;
+  private short blockSize;
 
   /**
    * Total number of blocks in the file system.
    */
-  private int blocks ;
+  private int blocks;
 
   /**
-   * Offset in blocks of the free list block region from the beginning 
+   * Offset in blocks of the free list block region from the beginning
    * of the file system.
    */
-  private int freeListBlockOffset ;
+  private int freeListBlockOffset;
 
   /**
-   * Offset in blocks of the inode block region from the beginning 
+   * Offset in blocks of the inode block region from the beginning
    * of the file system.
    */
-  private int inodeBlockOffset ;
+  private int inodeBlockOffset;
 
   /**
-   * Offset in blocks of the data block region from the beginning 
+   * Offset in blocks of the data block region from the beginning
    * of the file system.
    */
-  private int dataBlockOffset ;
+  private int dataBlockOffset;
 
   /**
    * Construct a SuperBlock.
    */
-  public SuperBlock()
-  {
+  public SuperBlock() {
     super();
   }
 
-  public void setBlockSize( short newBlockSize )
-  {
-    blockSize = newBlockSize ;
+  public void setBlockSize(short newBlockSize) {
+    blockSize = newBlockSize;
   }
 
-  public short getBlockSize()
-  {
-    return blockSize ;
+  public short getBlockSize() {
+    return blockSize;
   }
 
-  public void setBlocks( int newBlocks )
-  {
-    blocks = newBlocks ;
+  public void setBlocks(int newBlocks) {
+    blocks = newBlocks;
   }
 
-  public int getBlocks()
-  {
-    return blocks ;
+  public int getBlocks() {
+    return blocks;
   }
 
   /**
    * Set the freeListBlockOffset (in blocks)
+   *
    * @param newFreeListBlockOffset the new offset in blocks
    */
-  public void setFreeListBlockOffset( int newFreeListBlockOffset )
-  {
-    freeListBlockOffset = newFreeListBlockOffset ;
+  public void setFreeListBlockOffset(int newFreeListBlockOffset) {
+    freeListBlockOffset = newFreeListBlockOffset;
   }
 
   /**
    * Get the free list block offset
+   *
    * @return the free list block offset
    */
-  public int getFreeListBlockOffset()
-  {
-    return freeListBlockOffset ;
+  public int getFreeListBlockOffset() {
+    return freeListBlockOffset;
   }
 
   /**
    * Set the inodeBlockOffset (in blocks)
+   *
    * @param newInodeBlockOffset the new offset in blocks
    */
-  public void setInodeBlockOffset( int newInodeBlockOffset )
-  {
-    inodeBlockOffset = newInodeBlockOffset ;
+  public void setInodeBlockOffset(int newInodeBlockOffset) {
+    inodeBlockOffset = newInodeBlockOffset;
   }
 
   /**
    * Get the inode block offset (in blocks)
+   *
    * @return inode block offset in blocks
    */
-  public int getInodeBlockOffset()
-  {
-    return inodeBlockOffset ;
+  public int getInodeBlockOffset() {
+    return inodeBlockOffset;
   }
 
   /**
    * Set the dataBlockOffset (in blocks)
+   *
    * @param newDataBlockOffset the new offset in blocks
    */
-  public void setDataBlockOffset( int newDataBlockOffset )
-  {
-    dataBlockOffset = newDataBlockOffset ;
+  public void setDataBlockOffset(int newDataBlockOffset) {
+    dataBlockOffset = newDataBlockOffset;
   }
 
   /**
    * Get the dataBlockOffset (in blocks)
+   *
    * @return the offset in blocks to the data block region
    */
-  public int getDataBlockOffset()
-  {
-    return dataBlockOffset ;
+  public int getDataBlockOffset() {
+    return dataBlockOffset;
   }
 
   /**
    * writes this SuperBlock at the current position of the specified file.
    */
-  public void write( RandomAccessFile file ) throws IOException
-  {
-    file.writeShort( blockSize ) ;
-    file.writeInt( blocks ) ;
-    file.writeInt( freeListBlockOffset) ;
-    file.writeInt( inodeBlockOffset ) ;
-    file.writeInt( dataBlockOffset ) ;
-    for( int i = 0 ; i < blockSize - 18 ; i ++ )
-      file.write( (byte) 0 ) ;
+  public void write(RandomAccessFile file) throws IOException {
+    file.writeShort(blockSize);
+    file.writeInt(blocks);
+    file.writeInt(freeListBlockOffset);
+    file.writeInt(inodeBlockOffset);
+    file.writeInt(dataBlockOffset);
+    for (int i = 0; i < blockSize - 18; i++)
+      file.write((byte) 0);
   }
 
   /**
    * reads this SuperBlock at the current position of the specified file.
    */
-  public void read( RandomAccessFile file ) throws IOException
-  {
-    blockSize = file.readShort() ;
-    blocks = file.readInt() ;
-    freeListBlockOffset = file.readInt() ;
-    inodeBlockOffset = file.readInt() ;
-    dataBlockOffset = file.readInt() ;
-    file.skipBytes( blockSize - 18 ) ;
+  public void read(RandomAccessFile file) throws IOException {
+    blockSize = file.readShort();
+    blocks = file.readInt();
+    freeListBlockOffset = file.readInt();
+    inodeBlockOffset = file.readInt();
+    dataBlockOffset = file.readInt();
+    file.skipBytes(blockSize - 18);
   }
 
 }
