@@ -1122,7 +1122,97 @@ to be done:
        int chdir(const char *path);
        mode_t umask(mode_t mask);
 */
+public static int chmod( String pathname, short new_mode ) throws Exception {
+  String fullPath = getFullPath( pathname ) ;
 
+  IndexNode indexNode = new IndexNode() ;
+  short indexNodeNumber = findIndexNode( fullPath , indexNode ) ;
+  if( indexNodeNumber < 0 ){
+    Kernel.perror( PROGRAM_NAME ) ;
+    System.err.println( PROGRAM_NAME + ": unable to open file for reading" );
+    Kernel.exit( 1 ) ;
+  }
+
+  if (process.getUid() != 0) {
+    short mode = indexNode.getMode();
+    if (indexNode.getUid() == process.getUid()) {
+      if ( (mode & S_IWUSR) == 0 ) {
+        Kernel.perror(PROGRAM_NAME);
+        System.err.println(PROGRAM_NAME +
+                ": permission denied");
+        Kernel.exit(3);
+      }
+    } else if (indexNode.getGid() == process.getGid()) {
+      if ( (mode & S_IWGRP) == 0 ) {
+        Kernel.perror(PROGRAM_NAME);
+        System.err.println(PROGRAM_NAME +
+                ": permission denied");
+        Kernel.exit(3);
+      }
+    } else {
+      if ( (mode & S_IWOTH) == 0 ) {
+        Kernel.perror(PROGRAM_NAME);
+        System.err.println(PROGRAM_NAME +
+                ": permission denied");
+        Kernel.exit(3);
+      }
+    }
+  }
+
+  if (indexNode.getUid() == process.getUid() || process.getUid() == 0) {
+    indexNode.setMode((short) ((indexNode.getMode() & (~0777)) | new_mode));
+    openFileSystems[ROOT_FILE_SYSTEM].writeIndexNode(indexNode, indexNodeNumber);
+  }
+  else {
+    Kernel.perror( PROGRAM_NAME ) ;
+    System.err.println( PROGRAM_NAME + ": you haven't access" );
+    Kernel.exit( 1 ) ;
+  }
+
+  return 0;
+}
+
+  public static int chown( String path, short ownerId, short groupId) throws Exception  {
+    String fullPath = getFullPath( path ) ;
+
+    IndexNode indexNode = new IndexNode() ;
+    short indexNodeNumber = findIndexNode( fullPath , indexNode ) ;
+
+    if( indexNodeNumber < 0 ){
+      Kernel.perror( PROGRAM_NAME ) ;
+      System.err.println( PROGRAM_NAME + ": unable to open file for reading" );
+      Kernel.exit( 1 ) ;
+      return -1;
+    }
+
+    // if we need to change the groupId
+    if (groupId >= 0) {
+      if (indexNode.getUid() == process.getUid() || process.getUid() == 0) {
+        indexNode.setGid(groupId);
+        openFileSystems[ROOT_FILE_SYSTEM].writeIndexNode(indexNode, indexNodeNumber);
+      } else {
+        Kernel.perror( PROGRAM_NAME ) ;
+        System.err.println( PROGRAM_NAME + ": you haven't access" );
+        Kernel.exit( 2 ) ;
+        return -1;
+      }
+    }
+
+    // if we need to change the ownerId
+    if (ownerId >= 0) {
+      if (process.getUid() == 0) {
+        indexNode.setUid(ownerId);
+        System.out.println(indexNode.getUid());
+        openFileSystems[ROOT_FILE_SYSTEM].writeIndexNode(indexNode, indexNodeNumber);
+      } else {
+        Kernel.perror( PROGRAM_NAME ) ;
+        System.err.println( PROGRAM_NAME + ": you haven't access" );
+        Kernel.exit( 2 ) ;
+        return -1;
+      }
+    }
+    return 0;
+  }
   /**
    * This is an internal variable for the simulator which always
    * points to the
