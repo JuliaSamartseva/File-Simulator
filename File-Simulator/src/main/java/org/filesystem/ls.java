@@ -136,18 +136,18 @@ public class ls {
     String t = null;
 
     // append uid of file
-    short type = stat.getUid();
+    short uid = stat.getUid();
     s.append(' ');
-    s.append(type);
+    s.append(uid);
     s.append(' ');
 
     // append gid of file
-    type = stat.getGid();
+    short gid = stat.getGid();
     s.append(' ');
-    s.append(type);
+    s.append(gid);
     s.append(' ');
 
-    type = stat.getMode();
+    short type = stat.getMode();
 
     String userPermissions = Integer.toOctalString((type & Kernel.S_IRWXU) >> 6);
     String groupPermissions = Integer.toOctalString((type & Kernel.S_IRWXG) >> 3);

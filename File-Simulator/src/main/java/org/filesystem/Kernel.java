@@ -191,8 +191,6 @@ public class Kernel {
    * <pre>
    *   extern int errno ;
    * </pre>
-   *
-   * @see getErrno
    */
   public static void setErrno(int newErrno) {
     if (process == null) {
@@ -210,8 +208,6 @@ public class Kernel {
    * <pre>
    *   extern int errno ;
    * </pre>
-   *
-   * @see setErrno
    */
   public static int getErrno() {
     if (process == null) {
@@ -409,9 +405,9 @@ public class Kernel {
           throws Exception {
     // get the full path
     String fullPath = getFullPath(pathname);
+    FileSystem fileSystem = openFileSystems[ROOT_FILE_SYSTEM];
 
     StringBuffer dirname = new StringBuffer("/");
-    FileSystem fileSystem = openFileSystems[ROOT_FILE_SYSTEM];
     IndexNode currIndexNode = getRootIndexNode();
     IndexNode prevIndexNode = null;
     short indexNodeNumber = FileSystem.ROOT_INDEX_NODE_NUMBER;
@@ -1104,84 +1100,225 @@ public class Kernel {
     return DirectoryEntry.DIRECTORY_ENTRY_SIZE;
   }
 
-/*
-to be done:
-       int access(const char *pathname, int mode);
-       int link(const char *oldpath, const char *newpath);
-       int unlink(const char *pathname);
-       int rename(const char *oldpath, const char *newpath);
-       int symlink(const char *oldpath, const char *newpath);
-       int lstat(const char *file_name, struct stat *buf);
-       int chmod(const char *path, mode_t mode);
-       int fchmod(int fildes, mode_t mode);
-       int chown(const char *path, uid_t owner, gid_t group);
-       int fchown(int fd, uid_t owner, gid_t group);
-       int lchown(const char *path, uid_t owner, gid_t group);
-       int utime(const char *filename, struct utimbuf *buf);
-       int readlink(const char *path, char *buf, size_t bufsiz);
-       int chdir(const char *path);
-       mode_t umask(mode_t mask);
-*/
-public static int chmod( String pathname, short new_mode ) throws Exception {
-  String fullPath = getFullPath( pathname ) ;
+  /*
+  to be done:
+         int access(const char *pathname, int mode);
+         int link(const char *oldpath, const char *newpath);
+         int unlink(const char *pathname);
+         int rename(const char *oldpath, const char *newpath);
+         int symlink(const char *oldpath, const char *newpath);
+         int lstat(const char *file_name, struct stat *buf);
+         int chmod(const char *path, mode_t mode);
+         int fchmod(int fildes, mode_t mode);
+         int chown(const char *path, uid_t owner, gid_t group);
+         int fchown(int fd, uid_t owner, gid_t group);
+         int lchown(const char *path, uid_t owner, gid_t group);
+         int utime(const char *filename, struct utimbuf *buf);
+         int readlink(const char *path, char *buf, size_t bufsiz);
+         int chdir(const char *path);
+         mode_t umask(mode_t mask);
+  */
 
-  IndexNode indexNode = new IndexNode() ;
-  short indexNodeNumber = findIndexNode( fullPath , indexNode ) ;
-  if( indexNodeNumber < 0 ){
-    Kernel.perror( PROGRAM_NAME ) ;
-    System.err.println( PROGRAM_NAME + ": unable to open file for reading" );
-    Kernel.exit( 1 ) ;
+  public static int link(String existingFilepath, String newFilepath) throws Exception {
+
+    // Find index node for the already existing file path, new file will have the same index node number.
+    IndexNode indexNode = new IndexNode();
+    short indexNodeNumber = findIndexNode(existingFilepath, indexNode);
+
+    // File following existing filepath doesn't exist
+    if (indexNodeNumber == -1) {
+      process.errno = ENOENT;
+      return -1;
+    }
+
+    // Cannot create a hard link to the directory
+    if ((indexNode.getMode() & S_IFMT) == S_IFDIR) {
+      process.errno = EISDIR;
+      return -1;
+    }
+
+    int result = createDirectoryEntryWithIndexNodeNumber(newFilepath, indexNodeNumber);
+
+    if (result != -1) {
+      // Hard link was created successfully, increase Nlink number
+      indexNode.setNlink((short) (indexNode.getNlink() + 1));
+    }
+
+    return result;
   }
 
-  if (process.getUid() != 0) {
-    short mode = indexNode.getMode();
-    if (indexNode.getUid() == process.getUid()) {
-      if ( (mode & S_IWUSR) == 0 ) {
-        Kernel.perror(PROGRAM_NAME);
-        System.err.println(PROGRAM_NAME +
-                ": permission denied");
-        Kernel.exit(3);
-      }
-    } else if (indexNode.getGid() == process.getGid()) {
-      if ( (mode & S_IWGRP) == 0 ) {
-        Kernel.perror(PROGRAM_NAME);
-        System.err.println(PROGRAM_NAME +
-                ": permission denied");
-        Kernel.exit(3);
-      }
-    } else {
-      if ( (mode & S_IWOTH) == 0 ) {
-        Kernel.perror(PROGRAM_NAME);
-        System.err.println(PROGRAM_NAME +
-                ": permission denied");
-        Kernel.exit(3);
+  private static int createDirectoryEntryWithIndexNodeNumber(String pathName, short givenIndexNodeNumber) throws Exception {
+    String fullPath = getFullPath(pathName);
+    FileSystem fileSystem = openFileSystems[ROOT_FILE_SYSTEM];
+
+    StringBuffer dirname = new StringBuffer("/");
+    IndexNode currIndexNode = getRootIndexNode();
+    IndexNode prevIndexNode = null;
+    short indexNodeNumber = FileSystem.ROOT_INDEX_NODE_NUMBER;
+
+    StringTokenizer st = new StringTokenizer(fullPath, "/");
+    String name = ".";
+    // Starting from the root node (.), go through full path and create directories if needed.
+    while (st.hasMoreTokens()) {
+      name = st.nextToken();
+      if (!name.equals("")) {
+
+        // Checks if current node is not a directory
+        if ((currIndexNode.getMode() & S_IFMT) != S_IFDIR) {
+          process.errno = ENOTDIR;
+          return -1;
+        }
+
+        if (st.hasMoreTokens()) {
+          dirname.append(name);
+          dirname.append('/');
+        }
+
+        prevIndexNode = currIndexNode;
+        currIndexNode = new IndexNode();
+        indexNodeNumber = findNextIndexNode(
+                fileSystem, prevIndexNode, name, currIndexNode);
       }
     }
+
+
+    FileDescriptor fileDescriptor = null;
+
+    if (indexNodeNumber < 0) {
+      // File with the given file path doesn't exist, create it
+      currIndexNode.setNlink((short) 1);
+      fileDescriptor =
+              new FileDescriptor(fileSystem, currIndexNode, O_WRONLY);
+
+      // The file is going to have the same index node as existing file
+      fileDescriptor.setIndexNodeNumber(givenIndexNodeNumber);
+      fileSystem.writeIndexNode(currIndexNode, givenIndexNodeNumber);
+
+      // Open the directory
+      int dir = open(dirname.toString(), O_RDWR);
+      if (dir < 0) {
+        Kernel.perror(PROGRAM_NAME);
+        System.err.println(PROGRAM_NAME +
+                ": unable to open directory for writing");
+        Kernel.exit(1);
+      }
+
+      // Create a directory entry for the file that references the same index node as existing file had
+      DirectoryEntry newDirectoryEntry = new DirectoryEntry(givenIndexNodeNumber, name);
+
+      int status;
+      DirectoryEntry currentDirectoryEntry = new DirectoryEntry();
+      while (true) {
+        status = readdir(dir, currentDirectoryEntry);
+        if (status < 0) {
+          System.err.println(PROGRAM_NAME +
+                  ": error reading directory in creat");
+          System.exit(EXIT_FAILURE);
+        } else if (status == 0) {
+          // No entry was read on the current location, insert new directory entry
+          writedir(dir, newDirectoryEntry);
+          break;
+        } else {
+          if (currentDirectoryEntry.getName().compareTo(
+                  newDirectoryEntry.getName()) > 0) {
+            int seek_status =
+                    lseek(dir, -DirectoryEntry.DIRECTORY_ENTRY_SIZE, 1);
+            if (seek_status < 0) {
+              System.err.println(PROGRAM_NAME +
+                      ": error during seek in creat");
+              System.exit(EXIT_FAILURE);
+            }
+            writedir(dir, newDirectoryEntry);
+            break;
+          }
+        }
+      }
+
+      // Copy the rest of the directory entries out to the file
+      while (status > 0) {
+        DirectoryEntry nextDirectoryEntry = new DirectoryEntry();
+        status = readdir(dir, nextDirectoryEntry);
+        if (status > 0) {
+          int seek_status =
+                  lseek(dir, -DirectoryEntry.DIRECTORY_ENTRY_SIZE, 1);
+          if (seek_status < 0) {
+            System.err.println(PROGRAM_NAME +
+                    ": error during seek in creat");
+            System.exit(EXIT_FAILURE);
+          }
+        }
+        writedir(dir, currentDirectoryEntry);
+        currentDirectoryEntry = nextDirectoryEntry;
+      }
+      close(dir);
+    } else {
+      // File already exists
+      process.errno = EISDIR;
+      return -1;
+    }
+
+    return open(fileDescriptor);
   }
 
-  if (indexNode.getUid() == process.getUid() || process.getUid() == 0) {
-    indexNode.setMode((short) ((indexNode.getMode() & (~0777)) | new_mode));
-    openFileSystems[ROOT_FILE_SYSTEM].writeIndexNode(indexNode, indexNodeNumber);
+  public static int chmod(String pathname, short new_mode) throws Exception {
+    String fullPath = getFullPath(pathname);
+
+    IndexNode indexNode = new IndexNode();
+    short indexNodeNumber = findIndexNode(fullPath, indexNode);
+    if (indexNodeNumber < 0) {
+      Kernel.perror(PROGRAM_NAME);
+      System.err.println(PROGRAM_NAME + ": unable to open file for reading");
+      Kernel.exit(1);
+    }
+
+    if (process.getUid() != 0) {
+      short mode = indexNode.getMode();
+      if (indexNode.getUid() == process.getUid()) {
+        if ((mode & S_IWUSR) == 0) {
+          Kernel.perror(PROGRAM_NAME);
+          System.err.println(PROGRAM_NAME +
+                  ": permission denied");
+          Kernel.exit(3);
+        }
+      } else if (indexNode.getGid() == process.getGid()) {
+        if ((mode & S_IWGRP) == 0) {
+          Kernel.perror(PROGRAM_NAME);
+          System.err.println(PROGRAM_NAME +
+                  ": permission denied");
+          Kernel.exit(3);
+        }
+      } else {
+        if ((mode & S_IWOTH) == 0) {
+          Kernel.perror(PROGRAM_NAME);
+          System.err.println(PROGRAM_NAME +
+                  ": permission denied");
+          Kernel.exit(3);
+        }
+      }
+    }
+
+    if (indexNode.getUid() == process.getUid() || process.getUid() == 0) {
+      indexNode.setMode((short) ((indexNode.getMode() & (~0777)) | new_mode));
+      openFileSystems[ROOT_FILE_SYSTEM].writeIndexNode(indexNode, indexNodeNumber);
+    } else {
+      Kernel.perror(PROGRAM_NAME);
+      System.err.println(PROGRAM_NAME + ": you haven't access");
+      Kernel.exit(1);
+    }
+
+    return 0;
   }
-  else {
-    Kernel.perror( PROGRAM_NAME ) ;
-    System.err.println( PROGRAM_NAME + ": you haven't access" );
-    Kernel.exit( 1 ) ;
-  }
 
-  return 0;
-}
+  public static int chown(String path, short ownerId, short groupId) throws Exception {
+    String fullPath = getFullPath(path);
 
-  public static int chown( String path, short ownerId, short groupId) throws Exception  {
-    String fullPath = getFullPath( path ) ;
+    IndexNode indexNode = new IndexNode();
+    short indexNodeNumber = findIndexNode(fullPath, indexNode);
 
-    IndexNode indexNode = new IndexNode() ;
-    short indexNodeNumber = findIndexNode( fullPath , indexNode ) ;
-
-    if( indexNodeNumber < 0 ){
-      Kernel.perror( PROGRAM_NAME ) ;
-      System.err.println( PROGRAM_NAME + ": unable to open file for reading" );
-      Kernel.exit( 1 ) ;
+    if (indexNodeNumber < 0) {
+      Kernel.perror(PROGRAM_NAME);
+      System.err.println(PROGRAM_NAME + ": unable to open file for reading");
+      Kernel.exit(1);
       return -1;
     }
 
@@ -1191,9 +1328,9 @@ public static int chmod( String pathname, short new_mode ) throws Exception {
         indexNode.setGid(groupId);
         openFileSystems[ROOT_FILE_SYSTEM].writeIndexNode(indexNode, indexNodeNumber);
       } else {
-        Kernel.perror( PROGRAM_NAME ) ;
-        System.err.println( PROGRAM_NAME + ": you haven't access" );
-        Kernel.exit( 2 ) ;
+        Kernel.perror(PROGRAM_NAME);
+        System.err.println(PROGRAM_NAME + ": you haven't access");
+        Kernel.exit(2);
         return -1;
       }
     }
@@ -1205,14 +1342,15 @@ public static int chmod( String pathname, short new_mode ) throws Exception {
         System.out.println(indexNode.getUid());
         openFileSystems[ROOT_FILE_SYSTEM].writeIndexNode(indexNode, indexNodeNumber);
       } else {
-        Kernel.perror( PROGRAM_NAME ) ;
-        System.err.println( PROGRAM_NAME + ": you haven't access" );
-        Kernel.exit( 2 ) ;
+        Kernel.perror(PROGRAM_NAME);
+        System.err.println(PROGRAM_NAME + ": you haven't access");
+        Kernel.exit(2);
         return -1;
       }
     }
     return 0;
   }
+
   /**
    * This is an internal variable for the simulator which always
    * points to the
