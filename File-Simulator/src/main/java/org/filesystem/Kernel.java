@@ -1138,17 +1138,10 @@ public class Kernel {
       return -1;
     }
 
-    int result = createDirectoryEntryWithIndexNodeNumber(newFilepath, indexNodeNumber);
-
-    if (result != -1) {
-      // Hard link was created successfully, increase Nlink number
-      indexNode.setNlink((short) (indexNode.getNlink() + 1));
-    }
-
-    return result;
+    return createDirectoryEntryWithIndexNodeNumber(newFilepath, indexNodeNumber, indexNode.getNlink() + 1);
   }
 
-  private static int createDirectoryEntryWithIndexNodeNumber(String pathName, short givenIndexNodeNumber) throws Exception {
+  private static int createDirectoryEntryWithIndexNodeNumber(String pathName, short givenIndexNodeNumber, int nLink) throws Exception {
     String fullPath = getFullPath(pathName);
     FileSystem fileSystem = openFileSystems[ROOT_FILE_SYSTEM];
 
@@ -1187,7 +1180,7 @@ public class Kernel {
 
     if (indexNodeNumber < 0) {
       // File with the given file path doesn't exist, create it
-      currIndexNode.setNlink((short) 1);
+      currIndexNode.setNlink((short) nLink);
       fileDescriptor = new FileDescriptor(fileSystem, currIndexNode, O_WRONLY);
 
       // The file is going to have the same index node as existing file
