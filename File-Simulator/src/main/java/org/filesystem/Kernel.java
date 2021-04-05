@@ -3,11 +3,11 @@ package org.filesystem;/*
  * 456789012345678901234567890123456789012345678901234567890123456789012
  */
 
-import java.util.StringTokenizer;
-import java.util.Properties;
 import java.io.FileInputStream;
-import java.io.IOException;
 import java.io.FileNotFoundException;
+import java.io.IOException;
+import java.util.Properties;
+import java.util.StringTokenizer;
 
 /*
  * $Log: Kernel.java,v $
@@ -478,7 +478,8 @@ public class Kernel {
         Kernel.perror(PROGRAM_NAME);
         System.err.println(PROGRAM_NAME +
                 ": unable to open directory for writing");
-        Kernel.exit(1); // ??? is this correct
+        process.errno = ENOENT;
+        return -1;
       }
 
       // scan past the directory entries less than the current entry
@@ -1151,7 +1152,7 @@ public class Kernel {
     String fullPath = getFullPath(pathName);
     FileSystem fileSystem = openFileSystems[ROOT_FILE_SYSTEM];
 
-    StringBuffer dirname = new StringBuffer("/");
+    StringBuilder dirname = new StringBuilder("/");
     IndexNode currIndexNode = getRootIndexNode();
     IndexNode prevIndexNode = null;
     short indexNodeNumber = FileSystem.ROOT_INDEX_NODE_NUMBER;
@@ -1165,6 +1166,7 @@ public class Kernel {
 
         // Checks if current node is not a directory
         if ((currIndexNode.getMode() & S_IFMT) != S_IFDIR) {
+          System.err.println(PROGRAM_NAME + ": directory path contained a node that was not a directory");
           process.errno = ENOTDIR;
           return -1;
         }
@@ -1181,14 +1183,12 @@ public class Kernel {
       }
     }
 
-
     FileDescriptor fileDescriptor = null;
 
     if (indexNodeNumber < 0) {
       // File with the given file path doesn't exist, create it
       currIndexNode.setNlink((short) 1);
-      fileDescriptor =
-              new FileDescriptor(fileSystem, currIndexNode, O_WRONLY);
+      fileDescriptor = new FileDescriptor(fileSystem, currIndexNode, O_WRONLY);
 
       // The file is going to have the same index node as existing file
       fileDescriptor.setIndexNodeNumber(givenIndexNodeNumber);
@@ -1197,10 +1197,9 @@ public class Kernel {
       // Open the directory
       int dir = open(dirname.toString(), O_RDWR);
       if (dir < 0) {
-        Kernel.perror(PROGRAM_NAME);
-        System.err.println(PROGRAM_NAME +
-                ": unable to open directory for writing");
-        Kernel.exit(1);
+        System.err.println(PROGRAM_NAME + ": unable to open directory for writing");
+        process.errno = ENOENT;
+        return -1;
       }
 
       // Create a directory entry for the file that references the same index node as existing file had
@@ -1211,9 +1210,9 @@ public class Kernel {
       while (true) {
         status = readdir(dir, currentDirectoryEntry);
         if (status < 0) {
-          System.err.println(PROGRAM_NAME +
-                  ": error reading directory in creat");
-          System.exit(EXIT_FAILURE);
+          // Process.errno code was written in the readdir function
+          System.err.println(PROGRAM_NAME + ": error reading directory");
+          return -1;
         } else if (status == 0) {
           // No entry was read on the current location, insert new directory entry
           writedir(dir, newDirectoryEntry);
@@ -1221,12 +1220,10 @@ public class Kernel {
         } else {
           if (currentDirectoryEntry.getName().compareTo(
                   newDirectoryEntry.getName()) > 0) {
-            int seek_status =
-                    lseek(dir, -DirectoryEntry.DIRECTORY_ENTRY_SIZE, 1);
+            int seek_status = lseek(dir, -DirectoryEntry.DIRECTORY_ENTRY_SIZE, 1);
             if (seek_status < 0) {
-              System.err.println(PROGRAM_NAME +
-                      ": error during seek in creat");
-              System.exit(EXIT_FAILURE);
+              System.err.println(PROGRAM_NAME + ": error during seek");
+              return -1;
             }
             writedir(dir, newDirectoryEntry);
             break;
@@ -1242,9 +1239,8 @@ public class Kernel {
           int seek_status =
                   lseek(dir, -DirectoryEntry.DIRECTORY_ENTRY_SIZE, 1);
           if (seek_status < 0) {
-            System.err.println(PROGRAM_NAME +
-                    ": error during seek in creat");
-            System.exit(EXIT_FAILURE);
+            System.err.println(PROGRAM_NAME + ": error during seek");
+            return -1;
           }
         }
         writedir(dir, currentDirectoryEntry);
@@ -1253,7 +1249,8 @@ public class Kernel {
       close(dir);
     } else {
       // File already exists
-      process.errno = EISDIR;
+      System.err.println(PROGRAM_NAME + ": file with the given name already exists");
+      process.errno = EEXIST;
       return -1;
     }
 
