@@ -22,7 +22,7 @@ package org.filesystem;/*
  *
  * @author Ray Ontko
  */
-public class ls {
+public class Ls {
   /**
    * The name of this program.
    * This is the program name that is used

@@ -27,7 +27,7 @@ package org.filesystem;/*
  *
  * @author Ray Ontko
  */
-public class cat {
+public class Cat {
   /**
    * The name of this program.
    * This is the program name that is used

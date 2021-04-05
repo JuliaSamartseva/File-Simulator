@@ -2,7 +2,7 @@ package org.filesystem;
 
 import java.util.ArrayList;
 
-public class chown {
+public class Chown {
   public static final String PROGRAM_NAME = "chown";
 
   public static void main(String[] args) throws Exception {

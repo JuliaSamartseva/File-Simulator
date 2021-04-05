@@ -43,7 +43,7 @@ import java.lang.Integer;
  *
  * @author Ray Ontko
  */
-public class dump {
+public class Dump {
 
   public static void main(String[] args) {
     for (int i = 0; i < args.length; i++) {

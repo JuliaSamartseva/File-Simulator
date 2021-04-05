@@ -2,7 +2,7 @@ package org.filesystem;
 
 import java.util.ArrayList;
 
-public class chgrp {
+public class Chgrp {
     public static final String PROGRAM_NAME = "chgrp" ;
 
     public static void main(String[] args) throws Exception {

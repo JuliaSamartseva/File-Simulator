@@ -37,7 +37,7 @@ package org.filesystem;/*
  *
  * @author Ray Ontko
  */
-public class mkdir {
+public class Mkdir {
 
   /**
    * The name of this program.

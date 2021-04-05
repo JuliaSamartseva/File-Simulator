@@ -2,7 +2,7 @@ package org.filesystem;
 
 import java.util.ArrayList;
 
-public class chmod {
+public class Chmod {
   public static final String PROGRAM_NAME = "chmod";
 
   public static void main(String[] args) {
