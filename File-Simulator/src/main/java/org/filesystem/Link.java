@@ -1,6 +1,6 @@
 package org.filesystem;
 
-public class link {
+public class Link {
 
   public static String PROGRAM_NAME = "link";
 

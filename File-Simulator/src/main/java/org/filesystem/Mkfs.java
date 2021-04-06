@@ -51,7 +51,7 @@ import java.io.*;
  *
  * @author Ray Ontko
  */
-public class mkfs {
+public class Mkfs {
 
 
   /**

@@ -37,7 +37,7 @@ package org.filesystem;/*
  *
  * @author Ray Ontko
  */
-public class cp {
+public class Cp {
   /**
    * The name of this program.
    * This is the program name that is used

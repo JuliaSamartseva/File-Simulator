@@ -22,7 +22,7 @@ package org.filesystem;/*
  *
  * @author Ray Ontko
  */
-public class ls {
+public class Ls {
   /**
    * The name of this program.
    * This is the program name that is used
@@ -39,10 +39,11 @@ public class ls {
   public static void main(String[] args) throws Exception {
     // initialize the file system simulator kernel
     Kernel.initialize();
+    String alignFormat = "| %-8d | %-8d | %-6d | %-3s (%-9s)   | %-12d | %-4d | %-13s | %n";
+
 
     // for each path-name given
-    for (int i = 0; i < args.length; i++) {
-      String name = args[i];
+    for (String name : args) {
       int status = 0;
 
       // stat the name to get information about the file or directory
@@ -58,7 +59,7 @@ public class ls {
 
       // if name is a regular file, print the info
       if (type == Kernel.S_IFREG) {
-        print(name, stat);
+        print(name, stat, alignFormat);
       }
 
       // if name is a directory open it and read the contents
@@ -71,11 +72,7 @@ public class ls {
                   ": unable to open \"" + name + "\" for reading");
           Kernel.exit(1);
         }
-
-        // print a heading for this directory
-        System.out.println();
-        System.out.println(name + ":");
-
+        printHeader(name);
         // create a directory entry structure to hold data as we read
         DirectoryEntry directoryEntry = new DirectoryEntry();
         int count = 0;
@@ -98,7 +95,7 @@ public class ls {
           }
 
           // print the entry information
-          print(entryName, stat);
+          print(entryName, stat, alignFormat);
           count++;
         }
 
@@ -111,12 +108,9 @@ public class ls {
 
         // close the directory
         Kernel.close(fd);
-
-        // print a footing for this directory
-        System.out.println("total files: " + count);
+        printFooter(count);
       }
     }
-
     // exit with success if we process all the arguments
     Kernel.exit(0);
   }
@@ -128,68 +122,51 @@ public class ls {
    * @param name the name to print
    * @param stat the stat containing the file's information
    */
-  private static void print(String name, Stat stat) {
-    // a buffer to fill with a line of output
-    StringBuffer s = new StringBuffer();
-
-    // a temporary string
-    String t = null;
-
-    // append uid of file
+  private static void print(String name, Stat stat, String alignFormat) {
     short uid = stat.getUid();
-    s.append(' ');
-    s.append(uid);
-    s.append(' ');
-
-    // append gid of file
     short gid = stat.getGid();
-    s.append(' ');
-    s.append(gid);
-    s.append(' ');
 
     short type = stat.getMode();
-
     String userPermissions = Integer.toOctalString((type & Kernel.S_IRWXU) >> 6);
     String groupPermissions = Integer.toOctalString((type & Kernel.S_IRWXG) >> 3);
     String otherPermissions = Integer.toOctalString(type & Kernel.S_IRWXO);
 
-    s.append(userPermissions);
-    s.append(groupPermissions);
-    s.append(otherPermissions);
+    String permissions = "";
+    permissions += userPermissions;
+    permissions += groupPermissions;
+    permissions += otherPermissions;
 
     String rwxUserPermissions = rwxPermissions(userPermissions);
     String rwxGroupPermissions = rwxPermissions(groupPermissions);
     String rwxOtherPermissions = rwxPermissions(otherPermissions);
 
+    String rwxPermissions = "";
     if (rwxUserPermissions != null &&
             rwxGroupPermissions != null &&
             rwxOtherPermissions != null) {
-      s.append(" (");
-      s.append(rwxUserPermissions);
-      s.append(rwxGroupPermissions);
-      s.append(rwxOtherPermissions);
-      s.append(")");
+      rwxPermissions += rwxUserPermissions;
+      rwxPermissions += rwxGroupPermissions;
+      rwxPermissions += rwxOtherPermissions;
     }
 
-    // append the inode number in a field of 5
-    t = Integer.toString(stat.getIno());
-    for (int i = 0; i < 5 - t.length(); i++)
-      s.append(' ');
-    s.append(t);
-    s.append(' ');
+    int inodeNumber = stat.getIno();
+    int size = stat.getSize();
+    int nLink = stat.getNlink();
+    System.out.format(alignFormat, uid, gid, nLink, permissions, rwxPermissions, inodeNumber, size, name);
+  }
 
-    // append the size in a field of 10
-    t = Integer.toString(stat.getSize());
-    for (int i = 0; i < 10 - t.length(); i++)
-      s.append(' ');
-    s.append(t);
-    s.append(' ');
+  private static void printFooter(int filesNumber) {
+    System.out.format("+----------------------------------------------------------------------------------------+%n");
+    System.out.println("total files: " + filesNumber);
+  }
 
-    // append the name
-    s.append(name);
+  private static void printHeader(String directoryName) {
+    System.out.println();
+    System.out.println(directoryName + ":");
 
-    // print the buffer
-    System.out.println(s.toString());
+    System.out.format("+----------+----------+--------+-------------------+--------------+------+---------------+%n");
+    System.out.format("| User id  | Group id | Nlink  | Permissions       | Inode number | Size |   File name   |%n");
+    System.out.format("+----------+----------+--------+-------------------+--------------+------+---------------+%n");
   }
 
   private static String rwxPermissions(String octalString) {
