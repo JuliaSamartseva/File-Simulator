@@ -5,6 +5,12 @@ import java.util.ArrayList;
 public class Chmod {
   public static final String PROGRAM_NAME = "chmod";
 
+  private static String convertToOctal(String num) {
+    int dec = Integer.parseInt(num, 10);
+    String octal = Integer.toOctalString(dec);
+    return octal;
+  }
+
   public static void main(String[] args) {
     ArrayList<String> filename = new ArrayList<>();
     ArrayList<Short> mode = new ArrayList<>();
@@ -15,7 +21,11 @@ public class Chmod {
           System.out.println("Error \"" + PROGRAM_NAME + "\": need correct mode arguments");
           System.exit(1);
         }
-        mode.add(Short.parseShort(args[i + 1], 8));
+        if(args[i+1].contains("8") || args[i+1].contains("9")) {
+          String oct = convertToOctal(args[i+1]);
+          mode.add(Short.parseShort(oct, 8));
+        }
+        else mode.add(Short.parseShort(args[i + 1], 8));
       }
     } else {
       System.out.println("Error \"" + PROGRAM_NAME + "\": need correct count arguments");

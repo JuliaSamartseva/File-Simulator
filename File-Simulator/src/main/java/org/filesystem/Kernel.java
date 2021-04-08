@@ -1256,33 +1256,33 @@ public class Kernel {
     IndexNode indexNode = new IndexNode();
     short indexNodeNumber = findIndexNode(fullPath, indexNode);
     if (indexNodeNumber < 0) {
-      Kernel.perror(PROGRAM_NAME);
       System.err.println(PROGRAM_NAME + ": unable to open file for reading");
-      Kernel.exit(1);
+      process.errno = ENOENT;
+      return -1;
     }
 
     if (process.getUid() != 0) {
       short mode = indexNode.getMode();
       if (indexNode.getUid() == process.getUid()) {
         if ((mode & S_IWUSR) == 0) {
-          Kernel.perror(PROGRAM_NAME);
           System.err.println(PROGRAM_NAME +
                   ": permission denied");
-          Kernel.exit(3);
+          process.errno = ENOENT;
+          return -1;
         }
       } else if (indexNode.getGid() == process.getGid()) {
         if ((mode & S_IWGRP) == 0) {
-          Kernel.perror(PROGRAM_NAME);
           System.err.println(PROGRAM_NAME +
                   ": permission denied");
-          Kernel.exit(3);
+          process.errno = ENOENT;
+          return -1;
         }
       } else {
         if ((mode & S_IWOTH) == 0) {
-          Kernel.perror(PROGRAM_NAME);
           System.err.println(PROGRAM_NAME +
                   ": permission denied");
-          Kernel.exit(3);
+          process.errno = ENOENT;
+          return -1;
         }
       }
     }
@@ -1291,9 +1291,9 @@ public class Kernel {
       indexNode.setMode((short) ((indexNode.getMode() & (~0777)) | new_mode));
       openFileSystems[ROOT_FILE_SYSTEM].writeIndexNode(indexNode, indexNodeNumber);
     } else {
-      Kernel.perror(PROGRAM_NAME);
       System.err.println(PROGRAM_NAME + ": you haven't access");
-      Kernel.exit(1);
+      process.errno = ENOENT;
+      return -1;
     }
 
     return 0;
@@ -1306,9 +1306,8 @@ public class Kernel {
     short indexNodeNumber = findIndexNode(fullPath, indexNode);
 
     if (indexNodeNumber < 0) {
-      Kernel.perror(PROGRAM_NAME);
       System.err.println(PROGRAM_NAME + ": unable to open file for reading");
-      Kernel.exit(1);
+      process.errno = ENOENT;
       return -1;
     }
 
@@ -1318,9 +1317,8 @@ public class Kernel {
         indexNode.setGid(groupId);
         openFileSystems[ROOT_FILE_SYSTEM].writeIndexNode(indexNode, indexNodeNumber);
       } else {
-        Kernel.perror(PROGRAM_NAME);
         System.err.println(PROGRAM_NAME + ": you haven't access");
-        Kernel.exit(2);
+        process.errno = ENOENT;
         return -1;
       }
     }
@@ -1332,9 +1330,8 @@ public class Kernel {
         System.out.println(indexNode.getUid());
         openFileSystems[ROOT_FILE_SYSTEM].writeIndexNode(indexNode, indexNodeNumber);
       } else {
-        Kernel.perror(PROGRAM_NAME);
         System.err.println(PROGRAM_NAME + ": you haven't access");
-        Kernel.exit(2);
+        process.errno = ENOENT;
         return -1;
       }
     }
