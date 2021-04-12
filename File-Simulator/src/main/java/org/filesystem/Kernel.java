@@ -1262,28 +1262,21 @@ public class Kernel {
     }
 
     if (process.getUid() != 0) {
-      short mode = indexNode.getMode();
       if (indexNode.getUid() == process.getUid()) {
-        if ((mode & S_IWUSR) == 0) {
           System.err.println(PROGRAM_NAME +
                   ": permission denied");
           process.errno = ENOENT;
           return -1;
-        }
       } else if (indexNode.getGid() == process.getGid()) {
-        if ((mode & S_IWGRP) == 0) {
           System.err.println(PROGRAM_NAME +
                   ": permission denied");
           process.errno = ENOENT;
           return -1;
-        }
       } else {
-        if ((mode & S_IWOTH) == 0) {
           System.err.println(PROGRAM_NAME +
                   ": permission denied");
           process.errno = ENOENT;
           return -1;
-        }
       }
     }
 
