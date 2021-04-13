@@ -17,5 +17,7 @@ public class Link {
     String linkFilepath = argv[1];
 
     Kernel.link(existingFilepath, linkFilepath);
+
+    Kernel.exit(0);
   }
 }
