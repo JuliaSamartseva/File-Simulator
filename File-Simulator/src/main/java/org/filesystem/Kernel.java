@@ -1247,7 +1247,7 @@ public class Kernel {
       return -1;
     }
 
-    return open(fileDescriptor);
+    return 1;
   }
 
   public static int chmod(String pathname, short new_mode) throws Exception {
@@ -1358,6 +1358,10 @@ public class Kernel {
 
   // ??? should be private?
   public static short ROOT_FILE_SYSTEM = 0;
+
+  public static FileSystem getRootFileSystem() {
+    return openFileSystems[ROOT_FILE_SYSTEM];
+  }
 
   /**
    * Initialize the file simulator kernel.  This should be the

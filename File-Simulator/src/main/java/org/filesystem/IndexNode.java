@@ -387,6 +387,7 @@ public class IndexNode {
    *
    * @return the printable string
    */
+  @Override
   public String toString() {
     StringBuffer s = new StringBuffer("IndexNode[");
     s.append(mode);
@@ -400,6 +401,14 @@ public class IndexNode {
     s.append('}');
     s.append(']');
     return s.toString();
+  }
+
+  public Integer getDirectIndexBlock(int index) {
+    if (index >= 0 && index < MAX_DIRECT_BLOCKS) {
+      return directBlocks[index];
+    } else {
+      return null;
+    }
   }
 
   public void copy(IndexNode indexNode) {

@@ -169,6 +169,15 @@ public class FileSystem {
   private int currentFreeListBlock = -1;
   private BitBlock freeListBitBlock = null;
 
+  public boolean isBitBlockSet(int index) throws IOException {
+    loadFreeListBlock(index);
+    return freeListBitBlock.isBitSet(index);
+  }
+
+  public int getFreeListBitsSize() {
+    return blockSize * 8;
+  }
+
   /**
    * Mark a data block as being free in the free list.
    *
