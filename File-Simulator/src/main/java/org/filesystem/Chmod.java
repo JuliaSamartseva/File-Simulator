@@ -17,13 +17,13 @@ public class Chmod {
     if (args.length % 2 == 0 && args.length != 0) {
       for (int i = 0; i < args.length; i += 2) {
         filename.add(args[i]);
-        if (Short.parseShort(args[i + 1]) < 00 || Short.parseShort(args[i + 1]) > 0777) {
-          System.out.println("Error \"" + PROGRAM_NAME + "\": need correct mode arguments");
-          System.exit(1);
-        }
         if(args[i+1].contains("8") || args[i+1].contains("9")) {
           String oct = convertToOctal(args[i+1]);
           mode.add(Short.parseShort(oct, 8));
+        }
+        else if (Short.parseShort(args[i + 1], 8) < 00 || Short.parseShort(args[i + 1], 8) > 0777) {
+          System.out.println("Error \"" + PROGRAM_NAME + "\": need correct mode arguments");
+          System.exit(1);
         }
         else mode.add(Short.parseShort(args[i + 1], 8));
       }
